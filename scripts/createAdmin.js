@@ -3,7 +3,7 @@ import fs from "fs";
 import readline from "readline";
 
 // Load service account credentials
-const serviceAccountPath = "./LmserviceAccountKey.json";
+const serviceAccountPath = "./mis1ServiceAccountKey.json";
 if (!fs.existsSync(serviceAccountPath)) {
   console.error(`❌ Error: ${serviceAccountPath} not found in root directory.`);
   process.exit(1);

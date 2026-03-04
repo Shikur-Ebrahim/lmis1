@@ -6,8 +6,10 @@ import {
   Menu,
   X,
 } from "lucide-react"
+import { usePWAInstall } from "../hooks/usePWAInstall"
 
 export default function NavBar() {
+  const { isInstallable, handleInstallClick } = usePWAInstall()
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
   const isAdminRoute = location.pathname.startsWith("/admin")
@@ -90,7 +92,10 @@ export default function NavBar() {
               </Link>
 
               {/* Download App */}
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-semibold hover:bg-blue-700 transition-colors">
+              <button
+                onClick={handleInstallClick}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-semibold hover:bg-blue-700 transition-colors"
+              >
                 Download App
               </button>
 
@@ -156,7 +161,10 @@ export default function NavBar() {
                 </Link>
                 <button
                   className="w-full block px-6 py-2 rounded-lg text-base font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 text-center"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => {
+                    handleInstallClick();
+                    setIsOpen(false);
+                  }}
                 >
                   Download App
                 </button>

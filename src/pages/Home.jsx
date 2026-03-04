@@ -281,7 +281,7 @@ export default function Home() {
             <p className="text-sm text-blue-500 dark:text-blue-400 mb-6 max-w-lg">
               Empowering Ethiopia's Workforce through comprehensive labor market information and seamless, secure
               connections, provided as a dedicated public service. We strive to create opportunities, foster growth, and
-              build a prosperous future for all. Register today to get your official Labor ID.
+              build a prosperous future for all.
             </p>
 
             <div className="flex items-center space-x-2 mb-8">
