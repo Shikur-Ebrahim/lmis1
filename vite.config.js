@@ -11,6 +11,7 @@ export default defineConfig({
       includeAssets: ["images/lmis-logo.png", "apple-touch-icon.png", "mask-icon.svg"],
       workbox: {
         globPatterns: ["**/*.{js,css,html,png,svg,ico}"],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
       devOptions: {
         enabled: true,
