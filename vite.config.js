@@ -26,15 +26,22 @@ export default defineConfig({
         start_url: "/",
         icons: [
           {
-            src: "/images/lmis-logo.png",
+            src: "/images/pwa-512x512.png",
             sizes: "192x192",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "any",
           },
           {
-            src: "/images/lmis-logo.png",
+            src: "/images/pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "/images/maskable-icon.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
           },
         ],
       }
