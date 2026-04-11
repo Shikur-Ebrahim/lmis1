@@ -818,11 +818,23 @@ export default function Register() {
         message: "Updating security settings...",
       })
 
-      // Use validatedUser from step 0 (already authenticated)
-      const user = validatedUser
+      // Re-authenticate to avoid 'auth/requires-recent-login'
+      // This is necessary because filling the form can take longer than the 5-minute 'recent login' window
+      try {
+        const emailPrefix = formData.phoneNumber.replace('+', '')
+        const authEmail = `${emailPrefix}@lmis.gov.et`
+        const authPassword = formData.phoneNumber
+        await signInWithEmailAndPassword(auth, authEmail, authPassword)
+      } catch (authError) {
+        // If this fails, we still try updatePassword (might work if user was recently active)
+        console.warn("Re-authentication during password update:", authError)
+      }
 
       // Update Password to user's choice
-      await updatePassword(user, formData.password)
+      await updatePassword(auth.currentUser, formData.password)
+
+      // Re-define user for subsequent data saving steps
+      const user = auth.currentUser
 
       setSubmitMessage({
         type: "info",

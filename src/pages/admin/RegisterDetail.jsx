@@ -21,6 +21,7 @@ import {
   X,
   Mail,
   Edit3,
+  Award,
 } from "lucide-react"
 
 const hardcodedCountries = [
@@ -865,7 +866,6 @@ const RegisterDetail = () => {
                       setShowAddToApplicantModal(false)
                       setApplicantStatus("Pending")
                       setExpectedSalary("")
-                      setDuplicateEmailError("")
                       setSuccessMessage("")
                     }}
                     className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
@@ -939,7 +939,6 @@ const RegisterDetail = () => {
                       setShowAddToApplicantModal(false)
                       setApplicantStatus("Pending")
                       setExpectedSalary("")
-                      setDuplicateEmailError("")
                       setSuccessMessage("")
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"

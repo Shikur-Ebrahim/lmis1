@@ -51,6 +51,14 @@ export default function RegistrationFees() {
             const matchesStatus = statusFilter === "all" || fee.status === statusFilter
             return matchesSearch && matchesStatus
         })
+
+        // Sort: Pending first, then by createdAt (which is already the default order from fees)
+        result.sort((a, b) => {
+            if (a.status === 'pending' && b.status !== 'pending') return -1;
+            if (a.status !== 'pending' && b.status === 'pending') return 1;
+            return 0;
+        })
+
         setFilteredFees(result)
     }, [searchTerm, statusFilter, fees])
 
@@ -69,25 +77,34 @@ export default function RegistrationFees() {
                 const password = fee.phoneNumber; // Use phone number as default password
 
                 await createUserWithEmailAndPassword(secondaryAuth, email, password);
-                await deleteDoc(doc(db, "registration-fees", fee.id));
+                
+                // Update status instead of deleting
+                await updateDoc(doc(db, "registration-fees", fee.id), {
+                    status: 'approved',
+                    updatedAt: new Date()
+                });
 
                 // Cleanup secondary app
                 await deleteApp(secondaryApp);
 
-                showToast(`User verified: ${email}`, "success");
+                showToast(`User verified and payment approved: ${email}`, "success");
             } catch (error) {
                 console.error("Error during approval/registration:", error);
                 showToast("Failed to verify user. Please try again.", "error");
             }
         } else if (newStatus === 'rejected') {
-            if (!window.confirm("Are you sure you want to reject and PERMANENTLY delete this record?")) return;
+            if (!window.confirm("Are you sure you want to reject this payment record?")) return;
 
             try {
-                await deleteDoc(doc(db, "registration-fees", fee.id));
-                showToast("Record rejected and deleted.", "success");
+                // Update status instead of deleting
+                await updateDoc(doc(db, "registration-fees", fee.id), {
+                    status: 'rejected',
+                    updatedAt: new Date()
+                });
+                showToast("Record marked as rejected.", "success");
             } catch (error) {
-                console.error("Error deleting rejected record:", error);
-                showToast("Failed to delete record.", "error");
+                console.error("Error rejecting record:", error);
+                showToast("Failed to update record status.", "error");
             }
         }
     }
