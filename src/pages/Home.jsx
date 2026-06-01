@@ -598,20 +598,20 @@ export default function Home() {
                   <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex items-center space-x-4">
                       <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-200">
-                        <CreditCard className="w-8 h-8 text-emerald-600 animate-pulse" />
+                        <Users className="w-8 h-8 text-emerald-600 animate-pulse" />
                       </div>
                       <div>
                         <h4 className="text-lg font-bold text-gray-800">
-                          Pending & Under Review Applications Fee
+                          Pending & Under Review Applications
                         </h4>
                         <p className="text-sm text-gray-600 mt-1">
-                          For applications currently marked as Under Review, please check the processing fee set below.
+                          The current display of applicant files undergoing document verification and status review.
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 bg-emerald-600 text-white font-extrabold px-6 py-3 rounded-2xl shadow-lg border border-emerald-500 transform hover:scale-105 transition-transform cursor-default">
                       <span className="text-xl">
-                        {Number(underReviewAmount).toLocaleString()} Birr
+                        {Number(underReviewAmount).toLocaleString()} Applicants
                       </span>
                     </div>
                   </div>

@@ -5,7 +5,6 @@ import { Link } from "react-router-dom"
 import { doc, setDoc, onSnapshot, collection, query, where } from "firebase/firestore"
 import { db } from "../../config/firebase"
 import {
-  CreditCard,
   Users,
   Settings,
   ArrowLeft,
@@ -53,11 +52,11 @@ export default function UnderReviewSettings() {
   const handleSave = async (e) => {
     e.preventDefault()
     if (!amount.trim()) {
-      showToast("Please enter an amount", "error")
+      showToast("Please enter a count of applicants", "error")
       return
     }
 
-    const numericAmount = parseFloat(amount)
+    const numericAmount = parseInt(amount, 10)
     if (isNaN(numericAmount) || numericAmount < 0) {
       showToast("Please enter a valid positive number", "error")
       return
@@ -70,7 +69,7 @@ export default function UnderReviewSettings() {
         amount: numericAmount,
         updatedAt: new Date(),
       })
-      showToast("Under Review fee updated successfully!", "success")
+      showToast("Under Review applicants count updated successfully!", "success")
     } catch (error) {
       console.error("Error updating settings:", error)
       showToast("Failed to save settings. Please try again.", "error")
@@ -106,7 +105,7 @@ export default function UnderReviewSettings() {
               <Settings className="w-8 h-8 mr-3 text-cyan-400" />
               Under Review Settings
             </h1>
-            <p className="text-gray-400 text-sm font-medium mt-1">Configure processing fees for applicant files under review</p>
+            <p className="text-gray-400 text-sm font-medium mt-1">Configure the number of applicants displayed under review section</p>
           </div>
 
           <div className="bg-gray-800/50 p-1.5 rounded-2xl border border-gray-700 flex items-center self-start">
@@ -124,27 +123,26 @@ export default function UnderReviewSettings() {
           {/* Settings Form Card */}
           <div className="bg-gray-900/60 border border-gray-800 rounded-[2rem] p-6 space-y-6">
             <h2 className="text-xl font-bold flex items-center text-cyan-400">
-              <CreditCard className="w-5 h-5 mr-2" />
-              Configure Fee
+              <Users className="w-5 h-5 mr-2" />
+              Configure Applicant Count
             </h2>
             <form onSubmit={handleSave} className="space-y-6">
               <div>
                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
-                  Processing Fee Amount (Birr)
+                  Display Number of Applicants
                 </label>
                 <div className="relative group">
                   <input
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    placeholder="e.g. 1500"
+                    placeholder="e.g. 350"
                     min="0"
-                    step="0.01"
-                    className="w-full pl-6 pr-16 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl text-lg font-mono focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                    className="w-full pl-6 pr-28 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl text-lg font-mono focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
                     required
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">
-                    ETB
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-xs uppercase tracking-wider">
+                    Applicants
                   </span>
                 </div>
               </div>
@@ -193,14 +191,14 @@ export default function UnderReviewSettings() {
                 </div>
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-emerald-500/10 rounded-xl">
-                    <CreditCard className="w-5 h-5 text-emerald-600" />
+                    <Users className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div className="flex-1">
                     <p className="text-xs font-bold">
-                      Pending & Under Review Applications Fee
+                      Applicants Under Review
                     </p>
                     <p className="text-[10px] text-gray-500">
-                      Amount: {amount ? Number(amount).toLocaleString() : "0"} Birr
+                      Total Count: {amount ? Number(amount).toLocaleString() : "0"} Applicants
                     </p>
                   </div>
                 </div>
