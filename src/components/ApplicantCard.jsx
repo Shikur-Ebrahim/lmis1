@@ -2,13 +2,18 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapPin, DollarSign, Eye, Briefcase } from "lucide-react";
 import { getOptimizedImageUrl } from "../utils/cloudinary";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
+import AcceptanceNotificationModal from "./AcceptanceNotificationModal";
 
 export default function ApplicantCard({ applicant }) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [phoneInput, setPhoneInput] = useState("+251");
   const [errorMessage, setErrorMessage] = useState("");
+  
+  const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
   const navigate = useNavigate();
 
   const profileImageSrc = applicant?.profileImageUrl || applicant?.profileImage || "/placeholder.svg";
@@ -24,7 +29,7 @@ export default function ApplicantCard({ applicant }) {
     setShowPrompt(true);
   };
 
-  const handleSubmitPhoneNumber = () => {
+  const handleSubmitPhoneNumber = async () => {
     if (!phoneInput.trim() || phoneInput.trim() === "+251") {
       setErrorMessage("Please enter your Phone Number.");
       return;
@@ -38,7 +43,51 @@ export default function ApplicantCard({ applicant }) {
       return;
     }
 
+    setIsProcessing(true);
+
+    try {
+      if (applicant?.status === "Accepted") {
+        // Fetch settings
+        const settingsRef = doc(db, "systemSettings", "acceptanceNotification");
+        const settingsSnap = await getDoc(settingsRef);
+        
+        let isActive = false;
+        let maxViews = 2;
+        
+        if (settingsSnap.exists()) {
+          const data = settingsSnap.data();
+          isActive = data.isActive === true;
+          maxViews = typeof data.maxViews === 'number' ? data.maxViews : 2;
+        }
+
+        const currentViews = typeof applicant.acceptanceNotificationViews === 'number' 
+          ? applicant.acceptanceNotificationViews 
+          : 0;
+
+        if (isActive && currentViews < maxViews) {
+          // Increment view count in Firestore
+          const userRef = doc(db, "users", applicant.id);
+          await updateDoc(userRef, {
+             acceptanceNotificationViews: currentViews + 1
+          });
+          
+          setShowPrompt(false);
+          setShowAcceptanceModal(true);
+          setIsProcessing(false);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Error checking notification settings:", error);
+    }
+    
+    setIsProcessing(false);
     // ✅ Correct phone number
+    navigate(`/applicant/${applicant?.id}`);
+  };
+
+  const handleAcceptanceOk = () => {
+    setShowAcceptanceModal(false);
     navigate(`/applicant/${applicant?.id}`);
   };
 
@@ -164,21 +213,31 @@ export default function ApplicantCard({ applicant }) {
             <div className="flex justify-between mt-4">
               <button
                 onClick={() => setShowPrompt(false)}
-                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                disabled={isProcessing}
+                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmitPhoneNumber}
+                disabled={isProcessing}
                 className="px-4 py-2 rounded-lg bg-primary-600 text-white font-semibold 
-                           hover:bg-primary-700 shadow-md"
+                           hover:bg-primary-700 shadow-md flex items-center justify-center disabled:opacity-50 min-w-[100px]"
               >
-                Continue
+                {isProcessing ? "Wait..." : "Continue"}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Acceptance Notification Modal */}
+      <AcceptanceNotificationModal 
+         isOpen={showAcceptanceModal}
+         onClose={handleAcceptanceOk}
+         onOk={handleAcceptanceOk}
+         applicantName={applicant?.firstName || applicant?.fullName?.split(' ')[0] || "Applicant"}
+      />
     </div>
   );
 }

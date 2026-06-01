@@ -29,6 +29,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
 
+import AutoNotifications from "./pages/admin/AutoNotifications";
+
 function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin") ||
@@ -61,9 +63,6 @@ function App() {
             <Route path="/news" element={<News />} />
             <Route path="/login" element={<AdminLogin />} />
 
-
-
-
             <Route
               path="/admin/dashboard"
               element={
@@ -93,6 +92,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AdminNotifications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/auto-notifications"
+              element={
+                <ProtectedRoute>
+                  <AutoNotifications />
                 </ProtectedRoute>
               }
             />
@@ -137,8 +144,6 @@ function App() {
               }
             />
           </Routes>
-
-
         </main>
         {!isAdminRoute && <Footer />}
       </div>
