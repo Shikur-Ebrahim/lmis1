@@ -255,10 +255,8 @@ export default function ApplicantDetail() {
                 {/* IMO */}
                 {adminContact?.imo && (
                   <a
-                    href={`imofree://call?to=%2B${adminContact.imo.replace(/[^0-9]/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="IMO"
+                    href={`tel:${adminContact.imo.replace(/[^0-9+]/g, '')}`}
+                    title="IMO (Save to contacts first)"
                     className="flex-1 sm:flex-none justify-center inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white transition-colors"
                     style={{ backgroundColor: "#1565C0" }}
                   >
