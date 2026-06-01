@@ -103,6 +103,25 @@ export default function ApplicantDetail() {
   if (error) return <ErrorState error={error} />
   if (!applicant) return <NotFoundState />
 
+  const getCountryFlag = (countryName) => {
+    const flags = {
+      "Canada": "🇨🇦", "United States": "🇺🇸", "Ethiopia": "🇪🇹",
+      "UAE": "🇦🇪", "United Arab Emirates": "🇦🇪", "Saudi Arabia": "🇸🇦",
+      "Qatar": "🇶🇦", "Kuwait": "🇰🇼", "Bahrain": "🇧🇭", "Oman": "🇴🇲",
+      "Jordan": "🇯🇴", "Lebanon": "🇱🇧", "UK": "🇬🇧", "United Kingdom": "🇬🇧",
+      "Germany": "🇩🇪", "France": "🇫🇷", "Italy": "🇮🇹", "Australia": "🇦🇺",
+      "China": "🇨🇳", "Japan": "🇯🇵", "South Korea": "🇰🇷", "India": "🇮🇳",
+      "Turkey": "🇹🇷", "Egypt": "🇪🇬", "South Africa": "🇿🇦", "Nigeria": "🇳🇬",
+      "Kenya": "🇰🇪", "Sudan": "🇸🇩", "Somalia": "🇸🇴", "Djibouti": "🇩🇯",
+      "Eritrea": "🇪🇷", "Sweden": "🇸🇪", "Norway": "🇳🇴", "Denmark": "🇩🇰",
+      "Netherlands": "🇳🇱", "Belgium": "🇧🇪", "Spain": "🇪🇸", "Portugal": "🇵🇹",
+      "Switzerland": "🇨🇭", "Austria": "🇦🇹", "Poland": "🇵🇱", "Russia": "🇷🇺",
+      "Brazil": "🇧🇷", "Mexico": "🇲🇽", "Argentina": "🇦🇷", "Israel": "🇮🇱",
+      "Malaysia": "🇲🇾", "Singapore": "🇸🇬", "Thailand": "🇹🇭", "Philippines": "🇵🇭",
+    }
+    return flags[countryName] || "🌍"
+  }
+
   const tabs = [
     { id: "overview", label: "Overview", icon: User },
     { id: "professional", label: "Professional", icon: Briefcase },
@@ -174,11 +193,11 @@ export default function ApplicantDetail() {
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-3">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                     <MapPin className="w-3 h-3 mr-1" />
-                    {applicant.city}, {applicant.country}
+                    {getCountryFlag(applicant.country)} {applicant.country}
                   </span>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700">
                     <DollarSign className="w-3 h-3 mr-1" />
-                    Expected: ${applicant.expectedSalary || "N/A"}
+                    Salary: ${applicant.expectedSalary || "N/A"}
                   </span>
                 </div>
               </div>
@@ -236,15 +255,18 @@ export default function ApplicantDetail() {
                 {/* IMO */}
                 {adminContact?.imo && (
                   <a
-                    href={`imo://chat?phone=${adminContact.imo.replace(/[^0-9]/g, '')}`}
+                    href={`imofree://call?to=%2B${adminContact.imo.replace(/[^0-9]/g, '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     title="IMO"
-                    className="flex-1 sm:flex-none justify-center inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white transition-colors"
-                    style={{ backgroundColor: "#0099CC" }}
+                    className="flex-1 sm:flex-none justify-center inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white transition-colors"
+                    style={{ backgroundColor: "#1565C0" }}
                   >
-                    <svg className="w-4 h-4 sm:mr-2" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 19.5c-4.142 0-7.5-3.358-7.5-7.5S7.858 4.5 12 4.5s7.5 3.358 7.5 7.5-3.358 7.5-7.5 7.5zm3.536-10.036a5.003 5.003 0 00-7.072 7.072 5.003 5.003 0 007.072-7.072zm-5.303 5.303a3 3 0 114.243-4.243 3 3 0 01-4.243 4.243z"/>
+                    {/* Real IMO Logo */}
+                    <svg className="w-5 h-5 sm:mr-2" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="100" height="100" rx="22" fill="#1565C0"/>
+                      <path d="M50 15C30.7 15 15 28.4 15 45c0 9.2 4.8 17.4 12.4 23L24 75l16-5.6c3 .9 6.3 1.4 9.8 1.4C69.3 70.8 85 57.4 85 41c0-14.4-15.7-26-35-26z" fill="white"/>
+                      <text x="50" y="52" textAnchor="middle" fontSize="22" fontWeight="bold" fill="#1565C0" fontFamily="Arial, sans-serif">imo</text>
                     </svg>
                     <span className="hidden sm:inline">IMO</span>
                   </a>
