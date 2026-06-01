@@ -23,34 +23,37 @@ export default function AcceptanceNotificationModal({ isOpen, onClose, onOk, app
         </div>
 
         {/* Content */}
-        <div className="pt-12 pb-6 px-6 text-center space-y-4">
+        <div className="pt-12 pb-6 px-6 text-center space-y-6">
           
+          {/* English Section */}
           <div className="space-y-1">
              <h2 className="text-xl font-bold text-gray-800">
                Dear <span className="text-green-600">{applicantName}</span>,
              </h2>
+             <h2 className="text-2xl font-extrabold text-gray-900">
+               Congratulations!
+             </h2>
+             <p className="text-sm font-medium leading-relaxed text-gray-600">
+               You are accepted for the job. Please finish the bank statement process.
+             </p>
+          </div>
+
+          <hr className="border-gray-200 w-1/2 mx-auto" />
+
+          {/* Amharic Section */}
+          <div className="space-y-1">
              <h2 className="text-lg font-bold text-gray-800 font-amharic">
                ውድ <span className="text-green-600">{applicantName}</span>,
              </h2>
+             <h3 className="text-xl font-bold text-gray-900 font-amharic">
+               እንኳን ደስ አሎት!
+             </h3>
+             <p className="text-sm font-medium leading-relaxed text-gray-600 font-amharic">
+               ለስራው ተቀባይነት አግኝተዋል። እባክዎ የባንክ መግለጫ ሂደቱን ያጠናቅቁ።
+             </p>
           </div>
 
-          <h2 className="text-2xl font-extrabold text-gray-900 mt-2">
-            Congratulations!
-          </h2>
-          <h3 className="text-xl font-bold text-gray-800 font-amharic">
-            እንኳን ደስ አሎት!
-          </h3>
-          
-          <div className="space-y-3 text-gray-600">
-            <p className="text-sm font-medium leading-relaxed">
-              You are accepted for the job. Please finish the bank statement process.
-            </p>
-            <p className="text-sm font-medium leading-relaxed font-amharic">
-              ለስራው ተቀባይነት አግኝተዋል። እባክዎ የባንክ መግለጫ ሂደቱን ያጠናቅቁ።
-            </p>
-          </div>
-
-          <div className="pt-4">
+          <div className="pt-2">
             <button
               onClick={onOk}
               className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
