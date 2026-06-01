@@ -345,6 +345,14 @@ export default function AdminDashboard() {
             <span>Bank Statement Config</span>
           </Link>
           <Link
+            to="/admin/under-review-settings"
+            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition text-yellow-400 font-bold"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <Settings className="w-5 h-5" />
+            <span>Under Review Settings</span>
+          </Link>
+          <Link
             to="/admin/Biometric"
             className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition"
             onClick={() => setSidebarOpen(false)}

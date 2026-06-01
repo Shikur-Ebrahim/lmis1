@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Link } from "react-router-dom"
-import { collection, getDocs, orderBy, query, onSnapshot } from "firebase/firestore"
+import { collection, getDocs, orderBy, query, onSnapshot, doc } from "firebase/firestore"
 import { db } from "../config/firebase"
 import ApplicantCard from "../components/ApplicantCard"
 import QuickStats from "../components/QuickStats"
@@ -180,6 +180,35 @@ export default function Home() {
 
     fetchRegistrationFee()
   }, [])
+
+  const [underReviewAmount, setUnderReviewAmount] = useState(null)
+
+  // Fetch under-review settings amount in real-time
+  useEffect(() => {
+    const docRef = doc(db, "settings", "under_review")
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setUnderReviewAmount(docSnap.data().amount || null)
+      }
+    }, (error) => {
+      console.error("Error fetching under-review settings:", error)
+    })
+    return () => unsubscribe()
+  }, [])
+
+  // Scroll to hash on load/hashchange
+  useEffect(() => {
+    const handleHashScroll = () => {
+      if (window.location.hash === "#applicant-directory") {
+        setTimeout(() => {
+          document.getElementById("applicant-directory")?.scrollIntoView({ behavior: "smooth" });
+        }, 300);
+      }
+    };
+    handleHashScroll();
+    window.addEventListener("hashchange", handleHashScroll);
+    return () => window.removeEventListener("hashchange", handleHashScroll);
+  }, []);
 
   // Filter & sort applicants using useMemo
   const filteredApplicants = useMemo(() => {
@@ -446,7 +475,7 @@ export default function Home() {
       <TestimonialSlider />
 
       {/* Applicant Directory Section */}
-      <div className="py-20 bg-white">
+      <div id="applicant-directory" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-12 relative">
@@ -560,6 +589,32 @@ export default function Home() {
                     {/* Glow Effect */}
                     <span className="absolute -inset-1 bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600 rounded-2xl opacity-0 blur-xl group-hover:opacity-80 transition-all duration-500"></span>
                   </button>
+                </div>
+              )}
+
+              {/* Under Review Amount Banner */}
+              {underReviewAmount !== null && (
+                <div className="max-w-4xl mx-auto mt-16 p-6 bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-3xl shadow-md transform hover:scale-[1.01] transition-all duration-300">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-200">
+                        <CreditCard className="w-8 h-8 text-emerald-600 animate-pulse" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-gray-800">
+                          Pending & Under Review Applications Fee
+                        </h4>
+                        <p className="text-sm text-gray-600 mt-1">
+                          For applications currently marked as Under Review, please check the processing fee set below.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2 bg-emerald-600 text-white font-extrabold px-6 py-3 rounded-2xl shadow-lg border border-emerald-500 transform hover:scale-105 transition-transform cursor-default">
+                      <span className="text-xl">
+                        {Number(underReviewAmount).toLocaleString()} Birr
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
 

@@ -102,6 +102,22 @@ export default function NavBar() {
 
             </div>
 
+            {/* Mobile Applicants Button */}
+            <div className="lg:hidden flex items-center justify-center flex-1 mx-2">
+              <button
+                onClick={() => {
+                  if (location.pathname !== "/") {
+                    window.location.href = "/#applicant-directory";
+                  } else {
+                    document.getElementById("applicant-directory")?.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
+                className="px-4 py-2 border-2 border-emerald-500 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-50 active:scale-95 transition-all duration-200 rounded-full text-sm font-bold shadow-sm"
+              >
+                Applicants
+              </button>
+            </div>
+
             {/* Mobile menu button */}
             <div className="lg:hidden flex items-center">
               <button

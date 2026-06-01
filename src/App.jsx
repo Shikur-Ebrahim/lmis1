@@ -20,6 +20,7 @@ import AdminNotifications from "./pages/admin/Notifications";
 import AccountManagement from "./pages/admin/account";
 import AdminBiometric from "./pages/admin/Biometric";
 import RegistrationFees from "./pages/admin/RegistrationFees";
+import UnderReviewSettings from "./pages/admin/UnderReviewSettings";
 import Biometric from "./pages/Biometric";
 import RegistrationPayment from "./pages/RegistrationPayment";
 import PaymentMethods from "./pages/PaymentMethods";
@@ -161,6 +162,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <RegistrationFees />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/under-review-settings"
+              element={
+                <ProtectedRoute>
+                  <UnderReviewSettings />
                 </ProtectedRoute>
               }
             />
