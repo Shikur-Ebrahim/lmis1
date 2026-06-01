@@ -162,7 +162,17 @@ export default function ApplicantDetail() {
         */}
         <div className="relative bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Gradient Banner */}
-          <div className="h-32 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 opacity-90" />
+          <div className="h-32 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 opacity-90 relative">
+            {/* Bank Statement Button - Top Center */}
+            <div className="absolute top-4 left-0 right-0 flex justify-center">
+              <Link 
+                to={`/applicant/${applicant.id}/bank-statement`}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm px-6 py-2 rounded-full shadow-lg transition-transform transform hover:scale-105"
+              >
+                Bank Statement
+              </Link>
+            </div>
+          </div>
 
           <div className="relative px-6 pb-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-end -mt-12 mb-4">

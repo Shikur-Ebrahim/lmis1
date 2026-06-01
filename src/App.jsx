@@ -32,6 +32,8 @@ import ScrollToTop from "./components/ScrollToTop";
 import AutoNotifications from "./pages/admin/AutoNotifications";
 
 import AdminContactSettings from "./pages/admin/AdminContactSettings";
+import AdminBankStatementAccount from "./pages/admin/AdminBankStatementAccount";
+import BankStatement from "./pages/BankStatement";
 
 function App() {
   const location = useLocation();
@@ -51,6 +53,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/applicant/:id" element={<ApplicantDetail />} />
+            <Route path="/applicant/:id/bank-statement" element={<BankStatement />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/personal" element={<PersonalProfile />} />
             <Route path="/biometric" element={<Biometric />} />
@@ -110,6 +113,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AdminContactSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/bank-statement-account"
+              element={
+                <ProtectedRoute>
+                  <AdminBankStatementAccount />
                 </ProtectedRoute>
               }
             />
