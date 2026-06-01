@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
-import { doc, getDoc } from "firebase/firestore"
+import { doc, getDoc, updateDoc } from "firebase/firestore"
 import { db } from "../config/firebase"
 import {
   User, Mail, Phone, MapPin, Briefcase, Calendar, Globe,
@@ -11,6 +11,7 @@ import {
   CreditCard, Hash, Shield, Download, ExternalLink, ChevronRight,
   Eye, Menu
 } from "lucide-react"
+import AcceptanceNotificationModal from "../components/AcceptanceNotificationModal"
 
 export default function ApplicantDetail() {
   const { id } = useParams()
@@ -19,6 +20,7 @@ export default function ApplicantDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState("overview")
+  const [showAcceptanceModal, setShowAcceptanceModal] = useState(false)
 
   const fetchApplicant = useCallback(async () => {
     if (!id) return
@@ -27,7 +29,35 @@ export default function ApplicantDetail() {
       const docRef = doc(db, "users", id)
       const docSnap = await getDoc(docRef)
       if (docSnap.exists()) {
-        setApplicant({ id: docSnap.id, ...docSnap.data() })
+        const applicantData = { id: docSnap.id, ...docSnap.data() }
+        setApplicant(applicantData)
+        
+        // Notification Logic
+        if (applicantData.status === "Accepted") {
+          const settingsRef = doc(db, "systemSettings", "acceptanceNotification")
+          const settingsSnap = await getDoc(settingsRef)
+          
+          let isActive = false
+          let maxViews = 2
+          
+          if (settingsSnap.exists()) {
+            const data = settingsSnap.data()
+            isActive = data.isActive === true
+            maxViews = typeof data.maxViews === 'number' ? data.maxViews : 2
+          }
+
+          const currentViews = typeof applicantData.acceptanceNotificationViews === 'number' 
+            ? applicantData.acceptanceNotificationViews 
+            : 0
+
+          if (isActive && currentViews < maxViews) {
+            // Increment view count in Firestore
+            await updateDoc(docRef, {
+               acceptanceNotificationViews: currentViews + 1
+            })
+            setShowAcceptanceModal(true)
+          }
+        }
       } else {
         setError("Applicant not found")
       }
@@ -371,6 +401,13 @@ export default function ApplicantDetail() {
 
         </div>
       </div>
+
+      <AcceptanceNotificationModal 
+         isOpen={showAcceptanceModal}
+         onClose={() => setShowAcceptanceModal(false)}
+         onOk={() => setShowAcceptanceModal(false)}
+         applicantName={applicant.firstName || applicant.fullName?.split(' ')[0] || "Applicant"}
+      />
     </div>
   )
 }
