@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { doc, getDoc, setDoc } from "firebase/firestore"
 import { db } from "../../config/firebase"
-import { Building2, Save, CheckCircle, AlertCircle, Hash, User, Image as ImageIcon } from "lucide-react"
+import { Building2, Save, CheckCircle, AlertCircle, Hash, User, Upload, X, ImageIcon } from "lucide-react"
 
 export default function AdminBankStatementAccount() {
   const [bankInfo, setBankInfo] = useState({
@@ -15,6 +15,9 @@ export default function AdminBankStatementAccount() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
+  const [logoPreview, setLogoPreview] = useState(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     fetchBankInfo()
@@ -34,6 +37,9 @@ export default function AdminBankStatementAccount() {
           accountNumber: data.accountNumber || "",
           bankLogoUrl: data.bankLogoUrl || ""
         })
+        if (data.bankLogoUrl) {
+          setLogoPreview(data.bankLogoUrl)
+        }
       }
     } catch (error) {
       console.error("Error fetching bank settings:", error)
@@ -61,6 +67,43 @@ export default function AdminBankStatementAccount() {
   const handleChange = (e) => {
     const { name, value } = e.target
     setBankInfo(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      showMessage("Please select an image file (JPG, PNG, etc.)", "error")
+      return
+    }
+
+    // Validate file size (max 500KB for Firestore storage)
+    if (file.size > 500 * 1024) {
+      showMessage("Image must be smaller than 500KB for optimal performance.", "error")
+      return
+    }
+
+    setUploadingLogo(true)
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const base64String = event.target.result
+      setLogoPreview(base64String)
+      setBankInfo(prev => ({ ...prev, bankLogoUrl: base64String }))
+      setUploadingLogo(false)
+    }
+    reader.onerror = () => {
+      showMessage("Failed to read image file. Please try again.", "error")
+      setUploadingLogo(false)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveLogo = () => {
+    setLogoPreview(null)
+    setBankInfo(prev => ({ ...prev, bankLogoUrl: "" }))
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   const showMessage = (msg, type) => {
@@ -158,23 +201,71 @@ export default function AdminBankStatementAccount() {
               </div>
             </div>
 
-            {/* Bank Logo URL */}
+            {/* Bank Logo - File Upload from Gallery */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Bank Logo URL</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <ImageIcon className="h-5 w-5 text-gray-400" />
+              <label className="block text-sm font-medium text-gray-700 mb-2">Bank Logo</label>
+              
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="hidden"
+                id="bankLogoFileInput"
+              />
+
+              {logoPreview ? (
+                /* Preview with remove option */
+                <div className="relative w-full border-2 border-emerald-300 rounded-xl p-4 bg-emerald-50 flex items-center space-x-4">
+                  <img
+                    src={logoPreview}
+                    alt="Bank Logo Preview"
+                    className="w-16 h-16 object-contain bg-white rounded-lg shadow-sm p-1 border border-gray-200"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-emerald-700">Logo uploaded ✓</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Click change to update</p>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-2 text-xs bg-emerald-600 text-white px-3 py-1 rounded-lg hover:bg-emerald-700 transition-colors"
+                    >
+                      Change Logo
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    className="absolute top-2 right-2 p-1 bg-red-100 rounded-full hover:bg-red-200 transition-colors text-red-500"
+                    title="Remove logo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <input
-                  type="text"
-                  name="bankLogoUrl"
-                  value={bankInfo.bankLogoUrl}
-                  onChange={handleChange}
-                  placeholder="https://example.com/logo.png"
-                  className="pl-10 w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors outline-none"
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Provide a direct link to an image.</p>
+              ) : (
+                /* Upload button */
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="w-full border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center gap-2 hover:border-emerald-400 hover:bg-emerald-50 transition-all cursor-pointer group disabled:opacity-60"
+                >
+                  {uploadingLogo ? (
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+                  ) : (
+                    <>
+                      <div className="p-3 bg-gray-100 rounded-full group-hover:bg-emerald-100 transition-colors">
+                        <Upload className="w-6 h-6 text-gray-400 group-hover:text-emerald-600 transition-colors" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600 group-hover:text-emerald-700">
+                        Upload from Gallery
+                      </p>
+                      <p className="text-xs text-gray-400">JPG, PNG, SVG · Max 500KB</p>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
           </div>
@@ -182,8 +273,8 @@ export default function AdminBankStatementAccount() {
           {/* Preview Section */}
           {bankInfo.bankName && (
              <div className="mt-8 p-6 border border-gray-200 rounded-xl bg-gray-50 flex items-center space-x-6">
-                {bankInfo.bankLogoUrl ? (
-                   <img src={bankInfo.bankLogoUrl} alt="Bank Logo" className="w-16 h-16 object-contain bg-white rounded shadow-sm p-1" />
+                {logoPreview ? (
+                   <img src={logoPreview} alt="Bank Logo" className="w-16 h-16 object-contain bg-white rounded shadow-sm p-1" />
                 ) : (
                    <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-400">
                      <Building2 className="w-8 h-8" />
