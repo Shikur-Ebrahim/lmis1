@@ -329,6 +329,14 @@ export default function AdminDashboard() {
             <span>System Notifications</span>
           </Link>
           <Link
+            to="/admin/contact-settings"
+            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition text-green-400"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <Settings className="w-5 h-5" />
+            <span>Agency Contact</span>
+          </Link>
+          <Link
             to="/admin/Biometric"
             className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition"
             onClick={() => setSidebarOpen(false)}

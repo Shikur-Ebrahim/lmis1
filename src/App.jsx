@@ -31,6 +31,8 @@ import ScrollToTop from "./components/ScrollToTop";
 
 import AutoNotifications from "./pages/admin/AutoNotifications";
 
+import AdminContactSettings from "./pages/admin/AdminContactSettings";
+
 function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin") ||
@@ -100,6 +102,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AutoNotifications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/contact-settings"
+              element={
+                <ProtectedRoute>
+                  <AdminContactSettings />
                 </ProtectedRoute>
               }
             />
