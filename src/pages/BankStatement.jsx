@@ -2,13 +2,28 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
+import { doc, getDoc, updateDoc } from "firebase/firestore"
 import { db } from "../config/firebase"
+import { CLOUDINARY_CONFIG } from "../utils/cloudinary"
 import {
   ArrowLeft, Upload, FileText, CheckCircle, HelpCircle,
-  Phone, Mail, Building2, Copy, Check, AlertTriangle,
-  ShieldAlert, Camera, X, Image as ImageIcon
+  Phone, Mail, Building2, Copy, Check, ShieldAlert,
+  Camera, X, Lock, Clock, Eye
 } from "lucide-react"
+
+const uploadToCloudinary = async (file) => {
+  const isImage = file.type.startsWith("image/")
+  const resourceType = isImage ? "image" : "raw"
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/${resourceType}/upload`
+  const formData = new FormData()
+  formData.append("file", file)
+  formData.append("upload_preset", CLOUDINARY_CONFIG.uploadPresets.profile)
+  formData.append("folder", "lmis/bank-statements")
+  const response = await fetch(url, { method: "POST", body: formData })
+  if (!response.ok) throw new Error("Upload failed")
+  const data = await response.json()
+  return data.secure_url
+}
 
 export default function BankStatement() {
   const { id } = useParams()
@@ -19,14 +34,17 @@ export default function BankStatement() {
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
 
-  // Option 1 - upload statement
+  // Existing upload status
+  const [existingUpload, setExistingUpload] = useState(null) // { url, option, viewedByAdmin }
+
+  // Option 1
   const [statementFile, setStatementFile] = useState(null)
   const [statementPreview, setStatementPreview] = useState(null)
   const [uploadingStatement, setUploadingStatement] = useState(false)
   const [statementUploaded, setStatementUploaded] = useState(false)
   const statementInputRef = useRef(null)
 
-  // Option 2 - upload payment screenshot
+  // Option 2
   const [paymentFile, setPaymentFile] = useState(null)
   const [paymentPreview, setPaymentPreview] = useState(null)
   const [uploadingPayment, setUploadingPayment] = useState(false)
@@ -42,6 +60,22 @@ export default function BankStatement() {
 
         const contactDoc = await getDoc(doc(db, "systemSettings", "adminContact"))
         if (contactDoc.exists()) setAdminContact(contactDoc.data())
+
+        // Check if applicant already uploaded
+        if (id) {
+          const applicantDoc = await getDoc(doc(db, "applicants", id))
+          if (applicantDoc.exists()) {
+            const data = applicantDoc.data()
+            if (data.bankStatementUrl) {
+              setExistingUpload({
+                url: data.bankStatementUrl,
+                option: data.bankStatementOption,
+                viewedByAdmin: data.bankStatementViewedByAdmin,
+                uploadedAt: data.bankStatementUploadedAt,
+              })
+            }
+          }
+        }
       } catch (error) {
         console.error("Error fetching data:", error)
       } finally {
@@ -49,9 +83,8 @@ export default function BankStatement() {
       }
     }
     fetchData()
-  }, [])
+  }, [id])
 
-  // Copy account number
   const handleCopyAccount = () => {
     if (!bankSettings?.accountNumber) return
     navigator.clipboard.writeText(bankSettings.accountNumber).then(() => {
@@ -65,14 +98,8 @@ export default function BankStatement() {
     const file = e.target.files[0]
     if (!file) return
     const validTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"]
-    if (!validTypes.includes(file.type)) {
-      alert("Please select a JPG, PNG, or PDF file.")
-      return
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File must be smaller than 5MB.")
-      return
-    }
+    if (!validTypes.includes(file.type)) { alert("Please select a JPG, PNG, or PDF file."); return }
+    if (file.size > 5 * 1024 * 1024) { alert("File must be smaller than 5MB."); return }
     setStatementFile(file)
     if (file.type.startsWith("image/")) {
       const reader = new FileReader()
@@ -87,25 +114,23 @@ export default function BankStatement() {
     if (!statementFile) return
     setUploadingStatement(true)
     try {
-      const reader = new FileReader()
-      reader.onload = async (ev) => {
-        const base64 = ev.target.result
-        if (id) {
-          await updateDoc(doc(db, "applicants", id), {
-            bankStatementFile: base64,
-            bankStatementFileName: statementFile.name,
-            bankStatementUploadedAt: new Date().toISOString(),
-            bankStatementOption: "option1"
-          })
-        }
-        setStatementUploaded(true)
-        setUploadingStatement(false)
+      const url = await uploadToCloudinary(statementFile)
+      if (id) {
+        await updateDoc(doc(db, "applicants", id), {
+          bankStatementUrl: url,
+          bankStatementFileName: statementFile.name,
+          bankStatementUploadedAt: new Date().toISOString(),
+          bankStatementOption: "option1",
+          bankStatementViewedByAdmin: false,
+        })
       }
-      reader.readAsDataURL(statementFile)
+      setStatementUploaded(true)
+      setExistingUpload({ url, option: "option1", viewedByAdmin: false, uploadedAt: new Date().toISOString() })
     } catch (err) {
       console.error(err)
-      setUploadingStatement(false)
       alert("Upload failed. Please try again.")
+    } finally {
+      setUploadingStatement(false)
     }
   }
 
@@ -113,14 +138,8 @@ export default function BankStatement() {
   const handlePaymentFileChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (!file.type.startsWith("image/")) {
-      alert("Please select an image (JPG or PNG).")
-      return
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File must be smaller than 5MB.")
-      return
-    }
+    if (!file.type.startsWith("image/")) { alert("Please select an image (JPG or PNG)."); return }
+    if (file.size > 5 * 1024 * 1024) { alert("File must be smaller than 5MB."); return }
     setPaymentFile(file)
     const reader = new FileReader()
     reader.onload = (ev) => setPaymentPreview(ev.target.result)
@@ -131,25 +150,23 @@ export default function BankStatement() {
     if (!paymentFile) return
     setUploadingPayment(true)
     try {
-      const reader = new FileReader()
-      reader.onload = async (ev) => {
-        const base64 = ev.target.result
-        if (id) {
-          await updateDoc(doc(db, "applicants", id), {
-            paymentScreenshot: base64,
-            paymentScreenshotFileName: paymentFile.name,
-            paymentScreenshotUploadedAt: new Date().toISOString(),
-            bankStatementOption: "option2"
-          })
-        }
-        setPaymentUploaded(true)
-        setUploadingPayment(false)
+      const url = await uploadToCloudinary(paymentFile)
+      if (id) {
+        await updateDoc(doc(db, "applicants", id), {
+          bankStatementUrl: url,
+          bankStatementFileName: paymentFile.name,
+          bankStatementUploadedAt: new Date().toISOString(),
+          bankStatementOption: "option2",
+          bankStatementViewedByAdmin: false,
+        })
       }
-      reader.readAsDataURL(paymentFile)
+      setPaymentUploaded(true)
+      setExistingUpload({ url, option: "option2", viewedByAdmin: false, uploadedAt: new Date().toISOString() })
     } catch (err) {
       console.error(err)
-      setUploadingPayment(false)
       alert("Upload failed. Please try again.")
+    } finally {
+      setUploadingPayment(false)
     }
   }
 
@@ -160,6 +177,9 @@ export default function BankStatement() {
       </div>
     )
   }
+
+  // Already uploaded and pending admin review
+  const isPendingReview = existingUpload && existingUpload.viewedByAdmin === false
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
@@ -187,12 +207,39 @@ export default function BankStatement() {
           <p className="text-xs text-gray-500 max-w-md mx-auto">Please choose one of the options below to proceed.</p>
         </div>
 
-        {/* ───────── OPTION 1 ───────── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        {/* ── PENDING REVIEW BANNER ── */}
+        {isPendingReview && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-5 flex gap-3 items-start shadow-sm">
+            <div className="p-2 bg-amber-100 rounded-xl flex-shrink-0">
+              <Clock className="w-5 h-5 text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-amber-800 mb-1">Document Under Review / ሰነዱ በገምገማ ላይ ነው</p>
+              <p className="text-xs text-amber-700 leading-relaxed">
+                Your document has been submitted and is awaiting admin review. You will be able to upload again once the admin has viewed your document.
+              </p>
+              <p className="text-xs text-amber-700 leading-relaxed font-amharic mt-1">
+                ሰነዳችሁ ቀርቦ ሲሆን ለአስተዳዳሪ ግምገማ እየጠበቀ ነው።
+              </p>
+              {existingUpload.uploadedAt && (
+                <p className="text-xs text-amber-600 mt-2 font-mono">
+                  Uploaded: {new Date(existingUpload.uploadedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                </p>
+              )}
+            </div>
+            <div className="p-2 bg-amber-100 rounded-xl flex-shrink-0">
+              <Lock className="w-5 h-5 text-amber-600" />
+            </div>
+          </div>
+        )}
+
+        {/* ── OPTION 1 ── */}
+        <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden ${isPendingReview ? "opacity-60 pointer-events-none border-gray-100" : "border-gray-100"}`}>
           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-4 py-3">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-xs">Option 1</span>
               Standard Verification
+              {isPendingReview && <Lock className="w-4 h-4 ml-auto" />}
             </h3>
           </div>
           <div className="p-4 space-y-4">
@@ -221,7 +268,6 @@ export default function BankStatement() {
               Your information will be kept secure and used only for application verification.
             </p>
 
-            {/* Hidden file input */}
             <input
               ref={statementInputRef}
               type="file"
@@ -235,9 +281,13 @@ export default function BankStatement() {
                 <CheckCircle className="w-5 h-5" />
                 <span className="text-sm font-bold">Statement Uploaded Successfully!</span>
               </div>
+            ) : isPendingReview ? (
+              <div className="flex items-center justify-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl py-3 px-4">
+                <Lock className="w-5 h-5" />
+                <span className="text-sm font-bold">Locked – Pending Admin Review</span>
+              </div>
             ) : statementPreview ? (
               <div className="space-y-3">
-                {/* Preview */}
                 <div className="relative border-2 border-blue-200 rounded-xl overflow-hidden bg-blue-50">
                   {statementPreview === "pdf" ? (
                     <div className="flex items-center gap-3 p-3">
@@ -281,13 +331,14 @@ export default function BankStatement() {
           </div>
         </div>
 
-        {/* ───────── OPTION 2 ───────── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
+        {/* ── OPTION 2 ── */}
+        <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden relative ${isPendingReview ? "opacity-60 pointer-events-none border-gray-100" : "border-gray-100"}`}>
           <div className="absolute top-0 right-0 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg z-10">Recommended</div>
           <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-4 py-3">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-xs">Option 2</span>
               Optional Applicant Support Program
+              {isPendingReview && <Lock className="w-4 h-4 ml-auto" />}
             </h3>
           </div>
 
@@ -300,28 +351,26 @@ export default function BankStatement() {
                 የፋይናንስ መስፈርቶችን ለማሟላት እርዳታ ከፈለጉ፣ ለኛ አማራጭ የአመልካች ድጋፍ ፕሮግራም ማመልከት ይችላሉ።
               </p>
               <p className="text-xs text-gray-700 leading-relaxed">
-                Participants may contribute a refundable service fee of <strong>40,000 ETB</strong> for bank statement preparation and related document support. Once the process is completed, the fee will be returned.
+                Participants may contribute a refundable service fee of <strong>40,000 ETB</strong> for bank statement preparation and related document support.
               </p>
               <p className="text-xs text-gray-700 leading-relaxed font-amharic">
-                ተሳታፊዎች 40,000 ብር ተመላሽ የሚደረግ የአገልግሎት ክፍያ ማበርከት ይችላሉ። ሂደቱ ሲጠናቀቅ ክፍያው ይመለሳል።
+                ተሳታፊዎች 40,000 ብር ተመላሽ የሚደረግ የአገልግሎት ክፍያ ማበርከት ይችላሉ።
               </p>
             </div>
 
-            {/* ⚠️ Warning Notification */}
             <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 flex gap-2">
               <ShieldAlert className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <p className="text-xs font-bold text-amber-800">⚠️ Important Notice / አስፈላጊ ማሳሰቢያ</p>
                 <p className="text-xs text-amber-700 leading-relaxed">
-                  Please make payment <strong>ONLY</strong> to the official account listed below. Do <strong>NOT</strong> send money to any other external account. We are not responsible for payments made to unauthorized accounts.
+                  Please make payment <strong>ONLY</strong> to the official account listed below. We are not responsible for payments made to unauthorized accounts.
                 </p>
                 <p className="text-xs text-amber-700 leading-relaxed font-amharic">
-                  ክፍያዎን <strong>ብቻ</strong> ከዚህ በታች ለተዘረዘረው ይፋዊ ሂሳብ ይክፈሉ። ወደ ሌላ ውጫዊ ሂሳብ ገንዘብ <strong>አይላኩ</strong>። ፈቃድ ላልተሰጣቸው ሂሳቦች ለሚደረጉ ክፍያዎች ተጠያቂ አይደለንም።
+                  ክፍያዎን <strong>ብቻ</strong> ከዚህ በታች ለተዘረዘረው ይፋዊ ሂሳብ ይክፈሉ።
                 </p>
               </div>
             </div>
 
-            {/* Payment Details */}
             {bankSettings && (
               <div className="border-2 border-emerald-100 rounded-xl bg-emerald-50/50 p-4 space-y-4">
                 <h4 className="font-bold text-emerald-900 text-center text-xs uppercase tracking-wide">
@@ -342,7 +391,6 @@ export default function BankStatement() {
                     <p className="text-xs text-gray-600">{bankSettings.accountName}</p>
                   </div>
 
-                  {/* Account Number + Copy Button */}
                   <div className="flex items-center gap-2">
                     <div className="bg-white px-4 py-2 rounded-lg border border-emerald-200 shadow-inner">
                       <p className="text-emerald-700 font-mono font-bold text-sm tracking-widest">
@@ -351,31 +399,18 @@ export default function BankStatement() {
                     </div>
                     <button
                       onClick={handleCopyAccount}
-                      className={`flex items-center gap-1 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${
-                        copied
-                          ? "bg-green-100 border-green-400 text-green-700"
-                          : "bg-white border-gray-300 text-gray-600 hover:border-emerald-400 hover:text-emerald-700"
-                      }`}
+                      className={`flex items-center gap-1 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${copied ? "bg-green-100 border-green-400 text-green-700" : "bg-white border-gray-300 text-gray-600 hover:border-emerald-400 hover:text-emerald-700"}`}
                     >
-                      {copied ? (
-                        <><Check className="w-3.5 h-3.5" /><span>Copied!</span></>
-                      ) : (
-                        <><Copy className="w-3.5 h-3.5" /><span>Copy</span></>
-                      )}
+                      {copied ? <><Check className="w-3.5 h-3.5" /><span>Copied!</span></> : <><Copy className="w-3.5 h-3.5" /><span>Copy</span></>}
                     </button>
                   </div>
                 </div>
 
                 {/* Payment Screenshot Upload */}
                 <div className="border-t border-emerald-100 pt-4 space-y-3">
-                  <p className="text-xs font-bold text-gray-700 text-center">
-                    After paying, upload your payment screenshot:
-                  </p>
-                  <p className="text-xs text-gray-500 text-center font-amharic">
-                    ከከፈሉ በኋላ የክፍያ ቅጂዎን ይስቀሉ:
-                  </p>
+                  <p className="text-xs font-bold text-gray-700 text-center">After paying, upload your payment screenshot:</p>
+                  <p className="text-xs text-gray-500 text-center font-amharic">ከከፈሉ በኋላ የክፍያ ቅጂዎን ይስቀሉ:</p>
 
-                  {/* Hidden file input for payment */}
                   <input
                     ref={paymentInputRef}
                     type="file"
@@ -388,6 +423,11 @@ export default function BankStatement() {
                     <div className="flex items-center justify-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-xl py-3 px-4">
                       <CheckCircle className="w-5 h-5" />
                       <span className="text-xs font-bold">Payment Screenshot Submitted!</span>
+                    </div>
+                  ) : isPendingReview ? (
+                    <div className="flex items-center justify-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl py-3 px-4">
+                      <Lock className="w-5 h-5" />
+                      <span className="text-xs font-bold">Locked – Pending Admin Review</span>
                     </div>
                   ) : paymentPreview ? (
                     <div className="space-y-3">
@@ -427,7 +467,7 @@ export default function BankStatement() {
           </div>
         </div>
 
-        {/* ───────── Support Contact ───────── */}
+        {/* ── Support Contact ── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 text-center">
           <div className="flex justify-center mb-2">
             <HelpCircle className="w-7 h-7 text-gray-400" />
@@ -436,7 +476,6 @@ export default function BankStatement() {
           <p className="text-xs text-gray-500 mb-4">Contact our support team for help.</p>
 
           <div className="flex flex-wrap justify-center gap-2">
-            {/* Call */}
             <a
               href={adminContact?.phoneNumber ? `tel:${adminContact.phoneNumber}` : "#"}
               className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
@@ -444,7 +483,6 @@ export default function BankStatement() {
               <Phone className="w-4 h-4" />
               <span>Call</span>
             </a>
-            {/* Email */}
             <a
               href={adminContact?.email ? `mailto:${adminContact.email}` : "#"}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
@@ -452,7 +490,6 @@ export default function BankStatement() {
               <Mail className="w-4 h-4" />
               <span>Email</span>
             </a>
-            {/* Telegram */}
             {adminContact?.telegram && (
               <a
                 href={`https://t.me/${adminContact.telegram}`}
@@ -461,12 +498,11 @@ export default function BankStatement() {
                 style={{ backgroundColor: "#2AABEE" }}
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z"/>
+                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.941z" />
                 </svg>
                 <span>Telegram</span>
               </a>
             )}
-            {/* WhatsApp */}
             {adminContact?.whatsapp && (
               <a
                 href={`https://wa.me/${adminContact.whatsapp.replace(/[^0-9]/g, '')}`}
@@ -475,24 +511,9 @@ export default function BankStatement() {
                 style={{ backgroundColor: "#25D366" }}
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                 </svg>
                 <span>WhatsApp</span>
-              </a>
-            )}
-            {/* IMO */}
-            {adminContact?.imo && (
-              <a
-                href={`tel:${adminContact.imo.replace(/[^0-9+]/g, '')}`}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg text-white transition-colors"
-                style={{ backgroundColor: "#1565C0" }}
-              >
-                <svg className="w-4 h-4" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="100" height="100" rx="22" fill="#1565C0"/>
-                  <path d="M50 15C30.7 15 15 28.4 15 45c0 9.2 4.8 17.4 12.4 23L24 75l16-5.6c3 .9 6.3 1.4 9.8 1.4C69.3 70.8 85 57.4 85 41c0-14.4-15.7-26-35-26z" fill="white"/>
-                  <text x="50" y="52" textAnchor="middle" fontSize="22" fontWeight="bold" fill="#1565C0" fontFamily="Arial, sans-serif">imo</text>
-                </svg>
-                <span>IMO</span>
               </a>
             )}
           </div>

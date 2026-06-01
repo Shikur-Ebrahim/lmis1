@@ -31,6 +31,22 @@ export default function RegistrationFees() {
     const [selectedFee, setSelectedFee] = useState(null)
     const [showModal, setShowModal] = useState(false)
 
+    const handleOpenModal = async (fee) => {
+        setSelectedFee(fee)
+        setShowModal(true)
+        // Mark as viewed if not already
+        if (!fee.viewedByAdmin) {
+            try {
+                await updateDoc(doc(db, "registration-fees", fee.id), {
+                    viewedByAdmin: true,
+                    viewedAt: new Date().toISOString(),
+                })
+            } catch (err) {
+                console.error("Error marking as viewed:", err)
+            }
+        }
+    }
+
     useEffect(() => {
         const q = query(collection(db, "registration-fees"), orderBy("createdAt", "desc"))
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -187,7 +203,7 @@ export default function RegistrationFees() {
                                 {/* Photo Header (Prominent) */}
                                 <div
                                     className="aspect-video w-full bg-gray-900 overflow-hidden cursor-pointer relative group-hover:bg-black transition-colors"
-                                    onClick={() => { setSelectedFee(fee); setShowModal(true); }}
+                                    onClick={() => handleOpenModal(fee)}
                                 >
                                     <img src={fee.receiptUrl} alt="Payment Receipt" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                                     <div className="absolute top-4 right-4 capitalize px-3 py-1 rounded-full text-[10px] font-black tracking-widest bg-black/60 backdrop-blur-md border border-white/10 flex items-center space-x-1.5">

@@ -21,6 +21,7 @@ import AccountManagement from "./pages/admin/account";
 import AdminBiometric from "./pages/admin/Biometric";
 import RegistrationFees from "./pages/admin/RegistrationFees";
 import UnderReviewSettings from "./pages/admin/UnderReviewSettings";
+import AdminBankStatements from "./pages/admin/AdminBankStatements";
 import Biometric from "./pages/Biometric";
 import RegistrationPayment from "./pages/RegistrationPayment";
 import PaymentMethods from "./pages/PaymentMethods";
@@ -170,6 +171,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <UnderReviewSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/bank-statements"
+              element={
+                <ProtectedRoute>
+                  <AdminBankStatements />
                 </ProtectedRoute>
               }
             />

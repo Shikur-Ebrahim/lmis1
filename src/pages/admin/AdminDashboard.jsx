@@ -31,6 +31,7 @@ import {
   CreditCard,
   LogOut,
   Building2,
+  FolderOpen,
 } from "lucide-react"
 
 export default function AdminDashboard() {
@@ -49,6 +50,7 @@ export default function AdminDashboard() {
     unreadNotifications: 0,
     pendingBiometric: 0,
     unreadRegistrationFees: 0,
+    unviewedBankStatements: 0,
   })
   const [recentRegistrations, setRecentRegistrations] = useState([])
   const [recentMessages, setRecentMessages] = useState([])
@@ -151,10 +153,23 @@ export default function AdminDashboard() {
       }))
     })
 
+    // Listen for unviewed bank statements
+    const unsubscribeBankStatements = onSnapshot(collection(db, "applicants"), (snapshot) => {
+      const unviewedCount = snapshot.docs.filter(d => {
+        const data = d.data()
+        return data.bankStatementUrl && data.bankStatementViewedByAdmin === false
+      }).length
+      setStats((prev) => ({
+        ...prev,
+        unviewedBankStatements: unviewedCount,
+      }))
+    })
+
     return () => {
       unsubscribe()
       unsubscribeFees()
       unsubscribeMessages()
+      unsubscribeBankStatements()
     }
   }, [])
 
@@ -351,6 +366,19 @@ export default function AdminDashboard() {
           >
             <Settings className="w-5 h-5" />
             <span>Under Review Settings</span>
+          </Link>
+          <Link
+            to="/admin/bank-statements"
+            className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 transition text-cyan-300 font-bold"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <FolderOpen className="w-5 h-5" />
+            <span>Bank Statements</span>
+            {stats.unviewedBankStatements > 0 && (
+              <span className="ml-auto bg-amber-500 text-black font-black text-[10px] px-2 py-0.5 rounded-full animate-bounce">
+                {stats.unviewedBankStatements}
+              </span>
+            )}
           </Link>
           <Link
             to="/admin/Biometric"

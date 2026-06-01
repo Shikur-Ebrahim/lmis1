@@ -106,6 +106,7 @@ export default function PaymentDetail() {
                 accountNumber: account.accountNumber,
                 receiptUrl,
                 status: "pending",
+                viewedByAdmin: false,
                 createdAt: serverTimestamp(),
             }
 
